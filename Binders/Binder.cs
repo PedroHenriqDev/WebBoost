@@ -27,7 +27,7 @@ namespace WebBoost.Binders
                 property.SetValue(modelObj, ConvertTo(value, property.PropertyType));
             }
         }
-
+s
         public static object? ConvertTo(string value, Type type)
         {
             if (type == typeof(string)) return value;
