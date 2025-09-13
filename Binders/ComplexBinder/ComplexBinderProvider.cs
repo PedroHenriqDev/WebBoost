@@ -1,46 +1,34 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
-using System.ComponentModel;
-using System.IO;
-using System.Text;
+using WebBoost.Extensions;
 
 namespace WebBoost.Binders
 {
     public sealed class ComplexBinderProvider : IModelBinder
     {
-
-        public Task BindModelAsync(ModelBindingContext bindingContext)
+        public async Task BindModelAsync(ModelBindingContext bindingContext)
         {
             ActionContext actionContext = bindingContext.ActionContext;
-            string[] fromQueryString = actionContext.ActionDescriptor
-                .EndpointMetadata
-                .OfType<ComplexBinderAttribute>()
-                .FirstOrDefault()
-                ?.FromQuery
-                ?? [];
+            string[] fromQueryString =  bindingContext.GetBinderAttribute<ComplexBinderAttribute>()?.FromQuery ?? [];
 
             object? model = Activator.CreateInstance(bindingContext.ModelType);
 
-            string bodyAsJson = string.Empty;
-            using (var reader = new StreamReader(actionContext.HttpContext.Request.Body, Encoding.UTF8))
-            {
-                bodyAsJson = reader.ReadToEndAsync().GetAwaiter().GetResult();
-            }
+            string bodyAsJson = await actionContext.HttpContext.ReadBodyAsStringAsync();
 
-            model = typeof(Binder)?.GetMethod(nameof(Binder.BindBody))?.MakeGenericMethod(new Type[] {bindingContext.ModelType }).Invoke(null, [bodyAsJson]);
+            if(!string.IsNullOrEmpty(bodyAsJson))
+               Binder.BindBody(bodyAsJson, bindingContext.ModelType, ref model);
 
             IQueryCollection qs = actionContext.HttpContext.Request.Query;
-            IDictionary<string, string> queryString = qs.ToDictionary(qs => qs.Key.ToString(), qs => qs.Value.ToString());
+            IDictionary<string, string> queryString = qs.Where(param => fromQueryString.Contains(param.Key))
+                .ToDictionary(qs => qs.Key.ToString(), qs => qs.Value.ToString());
 
             if (queryString != null && queryString.Any())
-                Binder.BindQueryString(queryString, ref model);
+                Binder.BindQueryString(queryString, ref model!);
 
             bindingContext.Model = model;
 
             bindingContext.Result = ModelBindingResult.Success(bindingContext.Model);
-            return Task.CompletedTask;
         }
     }
 }
