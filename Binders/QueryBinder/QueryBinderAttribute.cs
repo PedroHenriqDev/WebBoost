@@ -3,14 +3,14 @@
 namespace WebBoost.Binders
 {
     [AttributeUsage(AttributeTargets.Parameter)]
-    public sealed class ComplexBinderAttribute : ModelBinderAttribute
+    public sealed class QueryBinderAttribute : ModelBinderAttribute
     {
         public string[] FromQuery { get; set; }
 
-        public ComplexBinderAttribute(params string[] fromQuery) 
+        public QueryBinderAttribute(params string[] fromQuery) 
         {
             FromQuery = fromQuery ?? [];
-            BinderType = typeof(ComplexBinderProvider);
+            BinderType = typeof(QueryBinderProvider);
         }
     }
 }

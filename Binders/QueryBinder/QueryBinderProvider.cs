@@ -5,12 +5,12 @@ using WebBoost.Extensions;
 
 namespace WebBoost.Binders
 {
-    public sealed class ComplexBinderProvider : IModelBinder
+    public sealed class QueryBinderProvider : IModelBinder
     {
         public async Task BindModelAsync(ModelBindingContext bindingContext)
         {
             ActionContext actionContext = bindingContext.ActionContext;
-            string[] fromQueryString =  bindingContext.GetBinderAttribute<ComplexBinderAttribute>()?.FromQuery ?? [];
+            string[] fromQueryString =  bindingContext.GetBinderAttribute<QueryBinderAttribute>()?.FromQuery ?? [];
 
             object? model = Activator.CreateInstance(bindingContext.ModelType);
 
