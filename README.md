@@ -1,101 +1,112 @@
-# WebBoost - Complex Binder for ASP.NET Core
+# WebBoost - QueryBinder and HeaderBinder for ASP.NET Core
 
-**WebBoost** extends the **ASP.NET Core** model binding pipeline, providing additional features to handle **complex binds** directly in controller actions. It allows you to specify properties from `QueryString` or `Body` in a simplified way.  
+**WebBoost** extends the **ASP.NET Core Model Binding pipeline**, adding support for **custom binders** directly in action parameters.  
+It allows you to map properties from `QueryString` or `Headers` in a simple way, avoiding repetitive code.
 
 ---
 
 ## ✨ Motivation
 
-**ASP.NET Core** already has a powerful `Model Binding` mechanism, but in scenarios where we need to **map complex parameters** partially from the query string and/or body, we often end up repeating manual mapping code inside actions or services.  
+**ASP.NET Core** already provides a powerful *Model Binding* mechanism, but in many scenarios we need to map parameters from query strings or headers into model objects.  
+This usually requires repetitive code inside controllers.  
 
-`WebBoost.Binders` introduces a new attribute called **`[ComplexBinder]`** that makes this process much easier.  
+`WebBoost.Binders` solves this with attributes like **`[QueryBinder]`** and **`[HeaderBinder]`**.
 
 ---
 
-## 🚀 Key Features
+## 🚀 Features
 
-- Create **complex binds** directly in controller parameters.  
-- Support for **query strings** with multiple fields.  
+- Direct binding from query string or headers to objects.  
 - Automatic type conversion (`int`, `decimal`, `DateTime`, `enum`, etc).  
-- Bind support for **JSON objects** (via `BindBody`).  
-- Clear exceptions when properties cannot be found.  
+- Clear exceptions when a property is missing or cannot be converted.  
 
 ---
 
 ## 📦 Installation
 
-In the future, this will be published as a NuGet package:  
+In the future, this will be available as a NuGet package:
 
 ```powershell
 dotnet add package WebBoost.Binders
 ```
 
-For now, clone the repository and add the reference to your project:  
+For now, clone the repository and add it as a reference in your project:
 
 ```powershell
-git clone https://github.com/your-username/webboost-binders.git
+git clone https://github.com/PedroHenriqDev/WebBoost
 ```
 
 ---
 
 ## 🛠️ Usage
 
-### 1. Example without ComplexBinder
+### Example model: `UserDto`
 
 ```csharp
-[HttpGet("search")]
-public IActionResult Search(string id, string name)
+namespace WebBoost.Test.Models
 {
-    var model = new UserFilter
+    public class UserDto
     {
-        Id = id,
-        Name = name
-    };
-
-    return Ok(model);
+        public int Id { get; set; }              // Can be bound via QueryBinder("Id")
+        public string Name { get; set; } = "";   // Can be bound via QueryBinder("Name")
+        public int Version { get; set; }         // Can be bound via HeaderBinder("Version")
+        public string Email { get; set; } = "";  // Can be bound via QueryBinder("Email")
+    }
 }
 ```
 
 ---
 
-### 2. Example with `[ComplexBinder]`
+### 1. Bind from **QueryString**
 
 ```csharp
-[HttpGet("search")]
-public IActionResult Search([ComplexBinder("id", "name")] UserFilter filter)
+[HttpPost("qs")]
+public IActionResult BindUserByQs([QueryBinder("Id", "Name", "Email")] UserDto userDto)
 {
-    return Ok(filter);
+    return Ok(userDto);
 }
 ```
 
-Now the binder automatically builds the **`UserFilter` object** from the query string:
-
+**Example request:**
 ```
-GET /search?id=123&name=Caio
+POST /api/users/qs?Id=10&Name=Pedro&Email=pedro@email.com
 ```
 
-Response:
+**Response:**
 ```json
 {
-  "id": "123",
-  "name": "Caio"
+  "id": 10,
+  "name": "Pedro",
+  "version": 0,
+  "email": "pedro@email.com"
 }
 ```
 
 ---
 
-## 🔥 Advanced Example
-
-Mixed binding from `query string` + `body` JSON:
+### 2. Bind from **Header**
 
 ```csharp
-[HttpPost("register")]
-public IActionResult Register(
-    [ComplexBinder("id", "email")] User user,
-    [FromBody] Address address)
+[HttpPost("header")]
+public IActionResult BindUserByHeader([HeaderBinder("Version")] UserDto userDto)
 {
-    user.Address = address;
-    return Ok(user);
+    return Ok(userDto);
+}
+```
+
+**Example request with header:**
+```
+POST /api/users/header
+Header: Version: 2
+```
+
+**Response:**
+```json
+{
+  "id": 0,
+  "name": "",
+  "version": 2,
+  "email": ""
 }
 ```
 
@@ -103,11 +114,11 @@ public IActionResult Register(
 
 ## 🧰 Exception Handling
 
-- `ComplexBindNotFoundPropertyException`: thrown when a specified property cannot be found on the model.  
+- `ComplexBindNotFoundPropertyException`: thrown when the property does not exist on the model.  
 - `InvalidOperationException`: thrown when the value cannot be converted to the target type.  
 
 ---
 
 ## 📜 License
 
-MIT © 2025 - [Pedro Henrique Rodrigues Oliveira]  
+MIT © 2025 - [Pedro Henrique Rodrigues Oliveira]
